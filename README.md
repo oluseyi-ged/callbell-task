@@ -137,7 +137,7 @@ npx expo start
 
 - **E2E Tests**: Validate complete user flows across multiple screens
 
-## 🎯 Future Improvements
+## 🎯 Possible Future Improvements
 
 - Implement message sending functionality
 - Add push notifications
