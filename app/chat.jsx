@@ -82,11 +82,11 @@ export default function ChatScreen() {
     }))
     ?.sort((a, b) => a.createdAt - b.createdAt)
 
-  const renderItem = ({ item }) => {
+  const renderItem = ({ item, index }) => {
     if (item.isNote) {
       const cleanedNote = item.message?.split(":")[0]
       return (
-        <View style={styles.noteContainer}>
+        <View style={styles.noteContainer} testID={`note-${index}`}>
           <Text style={styles.systemNoteText}>{cleanedNote}</Text>
         </View>
       )
@@ -94,6 +94,7 @@ export default function ChatScreen() {
 
     return (
       <View
+        testID={`chatItem-${index}`}
         style={[
           styles.messageContainer,
           item.fromMe ? styles.messageRight : styles.messageLeft,
@@ -130,6 +131,7 @@ export default function ChatScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
+          testID="backBtn"
           onPress={() => router.back()}
           style={styles.backButton}
         >
@@ -137,12 +139,13 @@ export default function ChatScreen() {
         </TouchableOpacity>
 
         <Image
+          testID="avatar"
           source={{ uri: `https://i.pravatar.cc/150?u=${uuid}` }}
           style={styles.avatar}
         />
 
         <Link href={{ pathname: "/contact", params }} asChild>
-          <TouchableOpacity>
+          <TouchableOpacity testID="contactName">
             <Text style={styles.userName}>{contactName}</Text>
           </TouchableOpacity>
         </Link>
@@ -168,12 +171,17 @@ export default function ChatScreen() {
           renderItem={renderItem}
           contentContainerStyle={styles.chat}
           showsVerticalScrollIndicator={false}
+          testID="chatList"
         />
       )}
 
       <View style={styles.inputContainer}>
-        <TextInput placeholder="Type a message..." style={styles.input} />
-        <TouchableOpacity>
+        <TextInput
+          testID="typeInput"
+          placeholder="Type a message..."
+          style={styles.input}
+        />
+        <TouchableOpacity testID="sendBtn">
           <AntDesign name="arrowup" size={24} color="#007AFF" />
         </TouchableOpacity>
       </View>

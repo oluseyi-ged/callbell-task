@@ -11,10 +11,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native"
+import { useDispatch } from "react-redux"
 import { useUpdateContactNameMutation } from "../src/api/services/contacts"
+import { updateConversationName } from "../src/store/conversationsSlice"
 
 export default function ContactScreen() {
   const params = useLocalSearchParams()
+  const dispatch = useDispatch()
   const {
     name: initialName,
     phoneNumber,
@@ -56,10 +59,11 @@ export default function ContactScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="contactScreen">
       {/* Profile section */}
       <View style={styles.profile}>
         <Image
+          testID="contactImg"
           source={{ uri: `https://i.pravatar.cc/150?u=${uuid}` }}
           style={styles.avatar}
         />
@@ -67,15 +71,21 @@ export default function ContactScreen() {
         {isEditing ? (
           <View style={styles.nameEditContainer}>
             <TextInput
+              testID="nameInput"
               style={styles.nameInput}
               value={name}
               onChangeText={setName}
               autoFocus
             />
             {isLoading ? (
-              <ActivityIndicator size="small" color="#007AFF" />
+              <ActivityIndicator
+                testID="saveLoadingIndicator"
+                size="small"
+                color="#007AFF"
+              />
             ) : (
               <TouchableOpacity
+                testID="saveButton"
                 onPress={handleSaveName}
                 style={styles.saveButton}
               >
@@ -85,8 +95,11 @@ export default function ContactScreen() {
           </View>
         ) : (
           <View style={styles.nameContainer}>
-            <Text style={styles.name}>{name}</Text>
+            <Text testID="contactNameText" style={styles.name}>
+              {name}
+            </Text>
             <TouchableOpacity
+              testID="editButton"
               onPress={() => setIsEditing(true)}
               style={styles.editButton}
             >
@@ -95,34 +108,43 @@ export default function ContactScreen() {
           </View>
         )}
 
-        <Text style={styles.username}>{phoneNumber}</Text>
+        <Text testID="phoneNumberText" style={styles.username}>
+          {phoneNumber}
+        </Text>
       </View>
 
       {/* Contact info sections */}
-      <View style={styles.infoBlock}>
+      <View style={styles.infoBlock} testID="sourceInfoBlock">
         <Feather name="info" size={20} color="#6b7280" />
-        <Text style={styles.infoText}>Source: {source}</Text>
+        <Text testID="sourceText" style={styles.infoText}>
+          Source: {source}
+        </Text>
       </View>
 
-      <View style={styles.metaBlock}>
+      <View style={styles.metaBlock} testID="emailBlock">
         <MaterialIcons name="email" size={20} color="#6b7280" />
-        <Text style={styles.metaText}>{href}</Text>
+        <Text testID="emailText" style={styles.metaText}>
+          {href}
+        </Text>
       </View>
 
-      <View style={styles.metaBlock}>
+      <View style={styles.metaBlock} testID="phoneBlock">
         <Feather name="phone" size={20} color="#6b7280" />
-        <Text style={styles.metaText}>{phoneNumber}</Text>
+        <Text testID="phoneText" style={styles.metaText}>
+          {phoneNumber}
+        </Text>
       </View>
 
-      <View style={styles.metaBlock}>
+      <View style={styles.metaBlock} testID="lastContactedBlock">
         <AntDesign name="calendar" size={20} color="#6b7280" />
-        <Text style={styles.metaText}>
+        <Text testID="lastContactedText" style={styles.metaText}>
           Last contacted: {new Date(closedAt).toDateString()}
         </Text>
       </View>
 
       {/* Back to conversations button */}
       <TouchableOpacity
+        testID="backToConversationsButton"
         style={styles.backToConversationsButton}
         onPress={() => router.dismiss(2)}
       >

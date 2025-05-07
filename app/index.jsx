@@ -38,12 +38,17 @@ export default function ConversationsScreen() {
     refetchOnFocus: true,
   })
 
-  const [deleteConversation, { isSuccess: delTrue }] =
-    useDeleteConversationMutation()
+  const [deleteConversation] = useDeleteConversationMutation()
 
   useEffect(() => {
     if (isSuccess) {
-      dispatch(setConversations(conversations.contacts))
+      const indexedConversations = conversations.contacts.map(
+        (item, index) => ({
+          ...item,
+          id: index,
+        })
+      )
+      dispatch(setConversations(indexedConversations))
     }
   }, [isSuccess])
 
@@ -55,7 +60,10 @@ export default function ConversationsScreen() {
 
   const renderItem = ({ item }) => (
     <Link href={{ pathname: "/chat", params: item }} asChild>
-      <TouchableWithoutFeedback>
+      <TouchableWithoutFeedback
+        testID={`conversationItem-${item.id}`}
+        accessibilityLabel={`conversationItem-${item.id}`}
+      >
         <View style={styles.conversation}>
           <Image
             source={{ uri: `https://i.pravatar.cc/150?u=${item?.uuid}` }}
@@ -99,19 +107,24 @@ export default function ConversationsScreen() {
       <Text style={styles.title}>Messages</Text>
 
       {isLoading && !conversationsList?.length ? (
-        <ActivityIndicator size="small" color="#007AFF" />
+        <ActivityIndicator
+          testID="loadingIndicator"
+          size="small"
+          color="#007AFF"
+        />
       ) : isError ? (
-        <Text>Error fetching conversations</Text>
+        <Text testID="errorState">Error fetching conversations</Text>
       ) : (
         <SwipeListView
           key={swipeKey}
           data={conversationsList}
           renderItem={renderItem}
-          renderHiddenItem={(data, rowMap) => (
+          renderHiddenItem={({ item, index }, rowMap) => (
             <View style={styles.rowBack}>
               <View />
               <MaterialIcons
-                onPress={() => handleDeleteConvo(data.item.uuid)}
+                testID={`deleteButton-${index}`}
+                onPress={() => handleDeleteConvo(item.uuid)}
                 name="delete-sweep"
                 size={24}
                 color="red"
@@ -123,9 +136,16 @@ export default function ConversationsScreen() {
           disableRightSwipe
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <MaterialIcons name="chat" size={48} color="#ccc" />
-              <Text style={styles.emptyText}>No conversations found yet</Text>
+            <View style={styles.emptyContainer} testID="emptyState">
+              <MaterialIcons
+                testID="emptyIcon"
+                name="chat"
+                size={48}
+                color="#ccc"
+              />
+              <Text testID="emptyText" style={styles.emptyText}>
+                No conversations found yet
+              </Text>
             </View>
           }
         />
