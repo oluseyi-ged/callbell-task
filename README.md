@@ -1,158 +1,146 @@
-# Callbell Mobile Test
+# Callbell Mobile Test - Implementation Overview
 
-Hi there 👋 Thanks for taking the time to do this test! We hope that you're going to have fun!
+## 📱 App Overview
 
-The goal here is to allow you to build an MVP of our Callbell Mobile app.
+This is a React Native mobile app built with Expo that implements Callbell's messaging interface with three main screens:
 
-We'll discuss your work (choices, code syntax, mistakes if there are some, etc.) during a review call after you have completed the assignment.
+1. **Conversations List** - Displays all message threads
+2. **Chat Screen** - Shows conversation history
+3. **Contact Details** - Displays and allows editing contact information
 
-⚠️ **Carefully read all the instructions, then give yourself a limited time.**
+## 🛠 Technical Implementation
 
-If you struggle to finish it, value your time and don't spend days on it. Just submit your best effort.
+### Core Features
 
-⚠️ If you think something is wrong with the test (doesn't run as expected, missing instructions, ...), please email me at [gianluca@callbell.eu](mailto:gianluca@callbell.eu).
+- **Redux Toolkit** for state management
+- **RTK Query** for API calls and caching
+- **Expo Router** for navigation
+- **Swipeable List** for conversation deletion
+- **Moment.js** for date formatting
+- **Vector Icons** for UI elements
+- **Detox** for E2E testing
 
-## 🚀 Objectives
+### Key Components
 
-The goal of this mobile test is to assess your skills on:
+#### `ConversationsScreen.js`
 
-- Installing and running an Expo development environment;
-- Making API calls to third-party services;
-- Creating user friendly interface
-- Creating a cross platform app
-- Writing unit tests;
-- Understanding of data management
-- Following instructions and looking for answers in documentations.
+- Fetches and displays conversation list
+- Implements swipe-to-delete functionality
+- Shows loading/empty states
+- Navigates to chat screen on tap
 
-## ☑️ Requirements
+#### `ChatScreen.js`
 
-The application should have three main screens:
+- Displays message history with proper bubbles
+- Differentiates between user/agent messages
+- Shows read receipts and timestamps
+- Header with contact info and back navigation
 
-1. **Conversations List Screen** (`/`)
+#### `ContactScreen.js`
 
-   - Display a list of conversations fetched from the Callbell API
-   - Each conversation should display the contact name, a contact picture and the last message received
-   - Each conversation should be clickable
-   - Should navigate to the chat screen when a conversation is selected
+- Displays contact details
+- Editable name field with save functionality
+- Shows contact metadata (phone, source, etc.)
+- Back navigation to conversations
 
-2. **Chat Screen** (`/chat`)
+## 🧪 Testing Implementation
 
-   - Display the conversation messages fetched from the Callbell API
-   - Show conversation history
-   - Should have a way to navigate to contact details
+### E2E Tests (Detox)
 
-3. **Contact Details Screen** (`/contact`)
-   - Display contact information fetched from the Callbell API
-   - Show contact name, notes, and other metadata
-   - Should allow contact name update
-   - Should have a way to navigate back to conversations
+The app includes comprehensive end-to-end tests covering:
 
-## ⚙️ Technical Requirements
+#### Conversations Screen Tests
 
-- Use React Native with Expo
-- Implement proper navigation between screens
-- Integrate with the Callbell API (https://docs.callbell.eu/api/reference/introduction)
-- Handle data management (you can choose any approach: Context API, Redux, etc.)
-- Implement proper error handling
-- Ensure good UX/UI practices
-- Implement basic tests (we provide you with Jest in the package.json, but feel free to use any tool you prefer)
+- Verifies screen title visibility
+- Checks for conversation list or empty state
+- Tests navigation to chat screen
+- Validates swipe-to-delete functionality
 
-## Bonus
+#### Chat Screen Tests
 
-If you have time you can go the extra miles and implement the following:
+- Confirms header elements
+- Verifies message list rendering
+- Checks input field and send button
+- Tests navigation to contact screen
 
-- Allow deleting a conversation/message
-- Implement more advanced tests (E2E, snapshots etc)
+#### Contact Screen Tests
 
-## 🧰 API Integration
+- Validates contact info display
+- Tests name editing flow
+- Confirms save functionality
+- Checks loading states
 
-The project includes a skeleton structure for API integration in the `src/api` directory for your convenience. But feel free to change it the way you want !
+### Running Tests
 
-- `config.js`: Contains API configuration (base URL and API key)
-- `client.js`: Basic API client implementation
-- `services/`: Directory containing service implementations for:
-  - `conversations.js`: Conversation-related API calls
-  - `messages.js`: Message-related API calls
-  - `contacts.js`: Contact-related API calls
+1. **Install dependencies**:
 
-## 📦 Installing the project
+   ```bash
+   yarn install
+   ```
 
-In order to run the expo app locally you'll need:
+2. **Build the app for testing**:
 
-- nvm (optional)
-- node 20.11.1
-- react 19.1.0
+   ```bash
+   detox build -c ios.sim.debug
+   ```
 
-### Configuration
+3. **Run the E2E tests**:
 
-You can manage your local npm installation by using `nvm`. Here's instructions on how to get it running:
+   ```bash
+   detox test -c ios.sim.debug
+   ```
 
-**1. Clone the repository**
+## 🚀 Getting Started
 
-```bash
-git clone git@github.com:callbellchat/callbell-mobile-assignment.git
-```
+### Prerequisites
 
-**2. Install npm**
+- Node.js v20.11.1
+- Expo CLI
+- iOS Simulator or Android Emulator
 
-This part is important, make sure you have the right node version before going further. We use "nvm" to handle our node version. But you can use any tool you prefer of course.
+### Installation
 
-```bash
-nvm install 20.11.1
-```
+1. Clone the repository
+2. Install dependencies:
 
-You can also uninstall previous versions of node if you don't need them:
+   ```bash
+   yarn install
+   ```
 
-```bash
-nvm uninstall 16.13.0
-```
+3. Add your Callbell API key to `.envrc`:
 
-**3. Use specific node version**
+   ```bash
+   export CALLBELL_API_KEY=your_api_key_here
+   ```
 
-```bash
-cd callbell-mobile-assignment
-nvm use
-```
-
-**4. Install dependencies**
-
-```bash
-npm install
-```
-
-**5. Add your Callbell API key to `.envrc`**
-
-Add the API key we've sent you by email in your ".envrc" file
-
-```
-export CALLBELL_API_KEY=your_api_key
-```
-
-**6. Start expo server:**
+### Running the App
 
 ```bash
 npx expo start
 ```
 
-**4. Open the app on your device or emulator**
+## 📂 Project Structure
 
-## 🗒 Notes
+```
+/src
+  /api
+    /services      # API service definitions
+    client.js     # API client setup
+    config.js     # API configuration
+  /store          # Redux store and slices
+  /components     # Reusable components
+  /screens        # Main app screens
+/e2e              # Detox test files
+```
 
-- The current codebase provides only the basic structure and navigation
-- You are free to implement the logic and data management as you see fit
-- Focus on clean code, proper architecture, and good practices
-- Add any necessary dependencies you need
-- Feel free to modify the UI/UX as long as the core functionality remains the same
+## ✅ Testing Strategy
 
----
+- **E2E Tests**: Validate complete user flows across multiple screens
 
-## 📪 Once you're done
+## 🎯 Future Improvements
 
-Send me an email at [gianluca@callbell.eu](mailto:gianluca@callbell.eu) with subject `[Mobile Test]`, and containing:
-
-- either a link to the GitHub repository of your project (if you want to keep it private, add [@proudlygeek](http://github.com/proudlygeek) as collaborator),
-- **OR** a ZIP **WITHOUT the `node_modules` folder**;
-- **your next availabilities** so I can schedule a review call with you.
-
-**Thanks for participating, have fun!**  
-_Gianluca, CTO at Callbell_
+- Implement message sending functionality
+- Add push notifications
+- Improve error handling and retry logic
+- Add more comprehensive unit tests
+- Implement dark mode support
