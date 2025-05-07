@@ -1,22 +1,30 @@
-export const contactsService = {
-  /**
-   * Get contact details
-   * @param {string} contactId
-   * @returns Promise<Object>
-   */
-  getContact: async (contactUUID) => {
-    // TODO: Implement this using the API endpoint https://docs.callbell.eu/api/reference/contacts_api/get_contact
-    throw new Error("Not implemented");
-  },
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react"
 
-  /**
-   * Update contact details
-   * @param {string} contactId
-   * @param {Object} data
-   * @returns Promise<Object>
-   */
-  updateContact: async (contactUUID, data) => {
-    // TODO: Implement this using the API endpoint https://docs.callbell.eu/api/reference/contacts_api/patch_contacts
-    throw new Error("Not implemented");
+const baseQuery = fetchBaseQuery({
+  baseUrl: process.env.CALLBELL_API_URL,
+  prepareHeaders: (headers) => {
+    const token = process.env.CALLBELL_API_KEY
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`)
+    }
+    return headers
   },
-};
+})
+
+export const contactsApi = createApi({
+  reducerPath: "contactsApi",
+  baseQuery,
+  endpoints: (builder) => ({
+    updateContactName: builder.mutation({
+      query: ({ uuid, name }) => ({
+        url: `contacts/${uuid}`,
+        method: "PATCH",
+        body: {
+          name,
+        },
+      }),
+    }),
+  }),
+})
+
+export const { useUpdateContactNameMutation } = contactsApi

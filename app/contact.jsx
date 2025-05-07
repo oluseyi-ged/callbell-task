@@ -1,40 +1,135 @@
 import { AntDesign, Feather, MaterialIcons } from "@expo/vector-icons"
-import { Image, StyleSheet, Text, View } from "react-native"
+import { router, useLocalSearchParams } from "expo-router"
+import { useEffect, useState } from "react"
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native"
+import { useUpdateContactNameMutation } from "../src/api/services/contacts"
 
 export default function ContactScreen() {
+  const params = useLocalSearchParams()
+  const {
+    name: initialName,
+    phoneNumber,
+    closedAt,
+    href,
+    source,
+    uuid,
+  } = params
+
+  const [name, setName] = useState(initialName)
+  const [updateContactName, { isLoading, isSuccess, isError, error }] =
+    useUpdateContactNameMutation()
+
+  useEffect(() => {
+    if (isSuccess) {
+      dispatch(
+        updateConversationName({
+          uuid: uuid,
+          newName: name,
+        })
+      )
+      setIsEditing(false)
+      Alert.alert("Success", "Contact name updated successfully.")
+    }
+    if (isError) {
+      setIsEditing(false)
+      setName(initialName)
+      Alert.alert(
+        "Error",
+        error?.data?.message || "Failed to update contact name."
+      )
+    }
+  }, [isSuccess, isError])
+
+  const [isEditing, setIsEditing] = useState(false)
+
+  const handleSaveName = async () => {
+    await updateContactName({ uuid, name })
+  }
+
   return (
     <View style={styles.container}>
+      {/* Profile section */}
       <View style={styles.profile}>
         <Image
-          source={{ uri: "https://i.pravatar.cc/150?img=1" }}
+          source={{ uri: `https://i.pravatar.cc/150?u=${uuid}` }}
           style={styles.avatar}
         />
-        <Text style={styles.name}>Ada Lovelace</Text>
-        <Text style={styles.username}>@ada.codes</Text>
+
+        {isEditing ? (
+          <View style={styles.nameEditContainer}>
+            <TextInput
+              style={styles.nameInput}
+              value={name}
+              onChangeText={setName}
+              autoFocus
+            />
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#007AFF" />
+            ) : (
+              <TouchableOpacity
+                onPress={handleSaveName}
+                style={styles.saveButton}
+              >
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : (
+          <View style={styles.nameContainer}>
+            <Text style={styles.name}>{name}</Text>
+            <TouchableOpacity
+              onPress={() => setIsEditing(true)}
+              style={styles.editButton}
+            >
+              <MaterialIcons name="edit" size={18} color="#3b82f6" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <Text style={styles.username}>{phoneNumber}</Text>
       </View>
 
+      {/* Contact info sections */}
       <View style={styles.infoBlock}>
         <Feather name="info" size={20} color="#6b7280" />
-        <Text style={styles.infoText}>
-          Software engineer, lover of algorithms, co-creator of the Analytical
-          Engine.
-        </Text>
+        <Text style={styles.infoText}>Source: {source}</Text>
       </View>
 
       <View style={styles.metaBlock}>
         <MaterialIcons name="email" size={20} color="#6b7280" />
-        <Text style={styles.metaText}>ada@maths.io</Text>
+        <Text style={styles.metaText}>{href}</Text>
       </View>
 
       <View style={styles.metaBlock}>
         <Feather name="phone" size={20} color="#6b7280" />
-        <Text style={styles.metaText}>+44 20 1234 5678</Text>
+        <Text style={styles.metaText}>{phoneNumber}</Text>
       </View>
 
       <View style={styles.metaBlock}>
         <AntDesign name="calendar" size={20} color="#6b7280" />
-        <Text style={styles.metaText}>Last contacted: May 3, 2025</Text>
+        <Text style={styles.metaText}>
+          Last contacted: {new Date(closedAt).toDateString()}
+        </Text>
       </View>
+
+      {/* Back to conversations button */}
+      <TouchableOpacity
+        style={styles.backToConversationsButton}
+        onPress={() => router.dismiss(2)}
+      >
+        <Text style={styles.backToConversationsText}>
+          Back to Conversations
+        </Text>
+      </TouchableOpacity>
     </View>
   )
 }
@@ -66,15 +161,49 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     marginBottom: 12,
   },
+  nameContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  nameEditContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
   name: {
     fontSize: 22,
     fontWeight: "700",
     color: "#111827",
+    marginRight: 8,
+  },
+  nameInput: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#111827",
+    borderBottomWidth: 1,
+    borderColor: "#d1d5db",
+    padding: 4,
+    minWidth: 200,
+    textAlign: "center",
   },
   username: {
     fontSize: 16,
     color: "#6b7280",
     marginTop: 4,
+  },
+  editButton: {
+    padding: 4,
+  },
+  saveButton: {
+    backgroundColor: "#3b82f6",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  saveButtonText: {
+    color: "white",
+    fontWeight: "500",
   },
   infoBlock: {
     flexDirection: "row",
@@ -96,5 +225,16 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: 16,
     color: "#374151",
+  },
+  backToConversationsButton: {
+    marginTop: 24,
+    padding: 12,
+    backgroundColor: "#3b82f6",
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  backToConversationsText: {
+    color: "white",
+    fontWeight: "600",
   },
 })

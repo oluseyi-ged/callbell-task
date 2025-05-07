@@ -1,138 +1,135 @@
 import { MaterialIcons } from "@expo/vector-icons"
 import { Link } from "expo-router"
+import moment from "moment"
+import { useEffect, useState } from "react"
 import {
-  FlatList,
+  ActivityIndicator,
   Image,
   StyleSheet,
   Text,
-  TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native"
-
-const dummyConversations = [
-  {
-    id: "1",
-    name: "Ada Lovelace",
-    lastMessage: "Let's catch up tonight.",
-    image: "https://i.pravatar.cc/150?img=1",
-    time: "10:30 AM",
-    unread: true,
-  },
-  {
-    id: "2",
-    name: "Grace Hopper",
-    lastMessage: "I'll send the file now.",
-    image: "https://i.pravatar.cc/150?img=2",
-    time: "Yesterday",
-    unread: false,
-  },
-  {
-    id: "3",
-    name: "Alan Turing",
-    lastMessage: "Great job on the project!",
-    image: "https://i.pravatar.cc/150?img=3",
-    time: "Yesterday",
-    unread: false,
-  },
-  {
-    id: "4",
-    name: "Katherine Johnson",
-    lastMessage: "Call me when you're free.",
-    image: "https://i.pravatar.cc/150?img=4",
-    time: "2 days ago",
-    unread: true,
-  },
-  {
-    id: "5",
-    name: "Dennis Ritchie",
-    lastMessage: "Looks good to me.",
-    image: "https://i.pravatar.cc/150?img=5",
-    time: "3 days ago",
-    unread: false,
-  },
-  {
-    id: "6",
-    name: "Barbara Liskov",
-    lastMessage: "Can we reschedule?",
-    image: "https://i.pravatar.cc/150?img=6",
-    time: "1 week ago",
-    unread: false,
-  },
-  {
-    id: "7",
-    name: "Tim Berners-Lee",
-    lastMessage: "Check your email.",
-    image: "https://i.pravatar.cc/150?img=7",
-    time: "1 week ago",
-    unread: false,
-  },
-  {
-    id: "8",
-    name: "Margaret Hamilton",
-    lastMessage: "Meeting is at 3pm.",
-    image: "https://i.pravatar.cc/150?img=8",
-    time: "2 weeks ago",
-    unread: false,
-  },
-  {
-    id: "9",
-    name: "Linus Torvalds",
-    lastMessage: "I'll push the changes.",
-    image: "https://i.pravatar.cc/150?img=9",
-    time: "2 weeks ago",
-    unread: false,
-  },
-  {
-    id: "10",
-    name: "James Gosling",
-    lastMessage: "Thanks for the update.",
-    image: "https://i.pravatar.cc/150?img=10",
-    time: "3 weeks ago",
-    unread: false,
-  },
-]
+import { SwipeListView } from "react-native-swipe-list-view"
+import { useDispatch, useSelector } from "react-redux"
+import {
+  useDeleteConversationMutation,
+  useGetConversationsQuery,
+} from "../src/api/services/conversations"
+import {
+  deleteConversations,
+  setConversations,
+} from "../src/store/conversationsSlice"
 
 export default function ConversationsScreen() {
+  const dispatch = useDispatch()
+  const [swipeKey, setSwipeKey] = useState(0)
+  const conversationsList = useSelector(
+    (state) => state.conversations.conversations
+  )
+
+  const {
+    data: conversations,
+    isLoading,
+    isError,
+    isSuccess,
+  } = useGetConversationsQuery(null, {
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+  })
+
+  const [deleteConversation, { isSuccess: delTrue }] =
+    useDeleteConversationMutation()
+
+  useEffect(() => {
+    if (isSuccess) {
+      dispatch(setConversations(conversations.contacts))
+    }
+  }, [isSuccess])
+
+  const handleDeleteConvo = (id) => {
+    deleteConversation(id)
+    dispatch(deleteConversations(id))
+    setSwipeKey(swipeKey + 1)
+  }
+
   const renderItem = ({ item }) => (
-    <Link href={`/chat`} asChild>
-      {/* <Link href={`/chat/${item.id}`} asChild> */}
-      <TouchableOpacity style={styles.conversation}>
-        <Image source={{ uri: item.image }} style={styles.avatar} />
-        <View style={styles.textContainer}>
-          <View style={styles.nameRow}>
-            <Text style={[styles.name, item.unread && styles.unreadName]}>
-              {item.name}
-            </Text>
-            <Text style={styles.time}>{item.time}</Text>
-          </View>
-          <View style={styles.messageRow}>
-            <Text
-              style={[styles.lastMessage, item.unread && styles.unreadMessage]}
-              numberOfLines={1}
-            >
-              {item.lastMessage}
-            </Text>
-            {item.unread && (
-              <View style={styles.unreadBadge}>
-                <MaterialIcons name="circle" size={12} color="#007AFF" />
-              </View>
-            )}
+    <Link href={{ pathname: "/chat", params: item }} asChild>
+      <TouchableWithoutFeedback>
+        <View style={styles.conversation}>
+          <Image
+            source={{ uri: `https://i.pravatar.cc/150?u=${item?.uuid}` }}
+            style={styles.avatar}
+          />
+          <View style={styles.textContainer}>
+            <View style={styles.nameRow}>
+              <Text style={[styles.name, item?.unread && styles.unreadName]}>
+                {item?.name}
+              </Text>
+              <Text style={styles.time}>
+                {moment(item?.closedAt || item?.createdAt)?.fromNow()}
+              </Text>
+            </View>
+            <View style={styles.messageRow}>
+              <Text
+                style={[
+                  styles.lastMessage,
+                  item?.unread && styles.unreadMessage,
+                ]}
+                numberOfLines={1}
+              >
+                {item?.lastMessage?.text?.includes("Bot")
+                  ? item?.lastMessage?.text?.split(":")[0]
+                  : item?.lastMessage?.text}
+              </Text>
+              {item?.unread && (
+                <View style={styles.unreadBadge}>
+                  <MaterialIcons name="circle" size={12} color="#007AFF" />
+                </View>
+              )}
+            </View>
           </View>
         </View>
-      </TouchableOpacity>
+      </TouchableWithoutFeedback>
     </Link>
   )
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Messages</Text>
-      <FlatList
-        data={dummyConversations}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        showsVerticalScrollIndicator={false}
-      />
+
+      {isLoading && !conversationsList?.length ? (
+        <ActivityIndicator size="small" color="#007AFF" />
+      ) : isError ? (
+        <Text>Error fetching conversations</Text>
+      ) : (
+        <SwipeListView
+          key={swipeKey}
+          data={conversationsList}
+          renderItem={renderItem}
+          renderHiddenItem={(data, rowMap) => (
+            <View style={styles.rowBack}>
+              <View />
+              <MaterialIcons
+                onPress={() => handleDeleteConvo(data.item.uuid)}
+                name="delete-sweep"
+                size={24}
+                color="red"
+              />
+            </View>
+          )}
+          leftOpenValue={0}
+          rightOpenValue={-50}
+          disableRightSwipe
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <MaterialIcons name="chat" size={48} color="#ccc" />
+              <Text style={styles.emptyText}>No conversations found yet</Text>
+            </View>
+          }
+        />
+      )}
     </View>
   )
 }
@@ -141,7 +138,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: "#f2f4f7",
+    backgroundColor: "#fff",
   },
   title: {
     fontSize: 22,
@@ -152,15 +149,10 @@ const styles = StyleSheet.create({
   conversation: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 14,
-    borderRadius: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#00000030",
     backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
     gap: 10,
   },
   unreadConversation: {
@@ -217,5 +209,23 @@ const styles = StyleSheet.create({
   unreadBadge: {
     width: 16,
     alignItems: "flex-end",
+  },
+  rowBack: {
+    alignItems: "center",
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingLeft: 15,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: "#666",
+    marginTop: 16,
   },
 })

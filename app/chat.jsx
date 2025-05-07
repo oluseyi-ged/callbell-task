@@ -1,6 +1,8 @@
 import { AntDesign, MaterialIcons } from "@expo/vector-icons"
-import { Link, router } from "expo-router"
+import { Link, router, useLocalSearchParams } from "expo-router"
+import { useEffect, useRef } from "react"
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   SafeAreaView,
@@ -10,71 +12,119 @@ import {
   TouchableOpacity,
   View,
 } from "react-native"
-
-const dummyMessages = [
-  {
-    id: "1",
-    fromMe: false,
-    message: "Hey Seyi! How's it going?",
-    time: "10:15 AM",
-    read: true,
-  },
-  {
-    id: "2",
-    fromMe: true,
-    message: "Hey! All good. Just working on a new app.",
-    time: "10:17 AM",
-    read: true,
-  },
-  {
-    id: "3",
-    fromMe: false,
-    message: "Nice! Can’t wait to see it.",
-    time: "10:18 AM",
-    read: false,
-  },
-  {
-    id: "4",
-    fromMe: true,
-    message: "Will send you a preview this evening.",
-    time: "10:20 AM",
-    read: false,
-  },
-]
+import { useDispatch, useSelector } from "react-redux"
+import { useGetMessagesQuery } from "../src/api/services/messages"
+import { updateLastMessage } from "../src/store/conversationsSlice"
 
 export default function ChatScreen() {
-  const renderItem = ({ item }) => (
-    <View
-      style={[
-        styles.messageContainer,
-        item.fromMe ? styles.messageRight : styles.messageLeft,
-      ]}
-    >
+  const params = useLocalSearchParams()
+  const { uuid } = params
+  const flatListRef = useRef()
+  const dispatch = useDispatch()
+  const contactName = useSelector(
+    (state) =>
+      state.conversations.conversations.find((c) => c?.uuid === uuid)?.name ||
+      "Unknown"
+  )
+
+  useEffect(() => {
+    if (chatsList?.length) {
+      const latestMessage = chatsList[chatsList?.length - 1]
+      console.log(latestMessage, "crtpytooo")
+      dispatch(
+        updateLastMessage({
+          uuid,
+          message: {
+            text: latestMessage?.message,
+            createdAt: new Date(latestMessage.createdAt).toISOString(),
+            from: latestMessage?.fromMe ? "me" : "them",
+            status: latestMessage?.read ? "read" : "sent",
+            isNote: latestMessage?.isNote,
+          },
+        })
+      )
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: false })
+      }, 100)
+    }
+  }, [chatsList])
+
+  const {
+    data: chats,
+    isLoading,
+    isError,
+    isSuccess,
+  } = useGetMessagesQuery(uuid, {
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+  })
+
+  const chatsList = chats?.messages
+    ?.filter((msg) => {
+      const hasValidText = msg.text?.trim()
+      const hasValidAttachments = msg.attachments?.some(
+        (attachment) => attachment !== null
+      )
+      return hasValidText || hasValidAttachments
+    })
+    ?.map((msg) => ({
+      id: msg.uuid || `${msg.createdAt}-${msg.from}`,
+      message: msg.text,
+      time: new Date(msg.createdAt).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      fromMe: !msg?.uuid?.length,
+      read: msg.status === "read",
+      isNote: msg.status === "note",
+      attachments: msg.attachments?.filter((attachment) => attachment !== null),
+      createdAt: new Date(msg.createdAt),
+    }))
+    ?.sort((a, b) => a.createdAt - b.createdAt)
+
+  const renderItem = ({ item }) => {
+    if (item.isNote) {
+      const cleanedNote = item.message?.split(":")[0]
+      return (
+        <View style={styles.noteContainer}>
+          <Text style={styles.systemNoteText}>{cleanedNote}</Text>
+        </View>
+      )
+    }
+
+    return (
       <View
         style={[
-          styles.bubble,
-          item.fromMe ? styles.myBubble : styles.theirBubble,
+          styles.messageContainer,
+          item.fromMe ? styles.messageRight : styles.messageLeft,
         ]}
       >
-        <Text style={item.fromMe ? styles.messageText : styles.receiptText}>
-          {item.message}
-        </Text>
-        <View style={styles.meta}>
-          <Text style={item.fromMe ? styles.time : styles.receiptTime}>
-            {item.time}
+        <View
+          style={[
+            styles.bubble,
+            item.fromMe ? styles.myBubble : styles.theirBubble,
+          ]}
+        >
+          <Text style={item.fromMe ? styles.messageText : styles.receiptText}>
+            {item.message}
           </Text>
-          {item.fromMe && (
-            <MaterialIcons
-              name={item.read ? "done-all" : "check"}
-              size={14}
-              color={item.read ? "#007AFF" : "#9ca3af"}
-              style={{ marginLeft: 4 }}
-            />
-          )}
+          <View style={styles.meta}>
+            <Text style={item.fromMe ? styles.time : styles.receiptTime}>
+              {item.time}
+            </Text>
+            {item.fromMe && (
+              <MaterialIcons
+                name={item.read ? "done-all" : "check"}
+                size={14}
+                color={item.read ? "#007AFF" : "#9ca3af"}
+                style={{ marginLeft: 4 }}
+              />
+            )}
+          </View>
         </View>
       </View>
-    </View>
-  )
+    )
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -87,13 +137,13 @@ export default function ChatScreen() {
         </TouchableOpacity>
 
         <Image
-          source={{ uri: "https://i.pravatar.cc/150?img=1" }}
+          source={{ uri: `https://i.pravatar.cc/150?u=${uuid}` }}
           style={styles.avatar}
         />
 
-        <Link href="/contact" asChild>
+        <Link href={{ pathname: "/contact", params }} asChild>
           <TouchableOpacity>
-            <Text style={styles.userName}>Ada Lovelace</Text>
+            <Text style={styles.userName}>{contactName}</Text>
           </TouchableOpacity>
         </Link>
 
@@ -105,13 +155,21 @@ export default function ChatScreen() {
         />
       </View>
 
-      <FlatList
-        data={dummyMessages}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.chat}
-        showsVerticalScrollIndicator={false}
-      />
+      {isLoading && !chatsList?.length ? (
+        <View style={styles.loadingBox}>
+          <ActivityIndicator size="small" color="#007AFF" />
+        </View>
+      ) : isError ? (
+        <Text>Error fetching messages</Text>
+      ) : (
+        <FlatList
+          data={chatsList}
+          keyExtractor={(item, index) => `${item.createdAt || index}-${index}`}
+          renderItem={renderItem}
+          contentContainerStyle={styles.chat}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       <View style={styles.inputContainer}>
         <TextInput placeholder="Type a message..." style={styles.input} />
@@ -142,6 +200,7 @@ const styles = StyleSheet.create({
     height: 35,
     borderRadius: 20,
     marginRight: 12,
+    backgroundColor: "#e5e5e5",
   },
   userName: {
     fontSize: 16,
@@ -212,5 +271,39 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginRight: 12,
+  },
+  systemNoteText: {
+    textAlign: "center",
+    color: "#888",
+    fontSize: 12,
+    marginVertical: 12,
+    fontStyle: "italic",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: "#666",
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: "#999",
+    marginTop: 8,
+  },
+  loadingBox: {
+    flex: 1,
+    marginVertical: 24,
+  },
+  rowBack: {
+    alignItems: "center",
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingLeft: 15,
   },
 })
