@@ -1,30 +1,26 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react"
-
-const baseQuery = fetchBaseQuery({
-  baseUrl: process.env.CALLBELL_API_URL,
-  prepareHeaders: (headers) => {
-    const token = process.env.CALLBELL_API_KEY
-    if (token) {
-      headers.set("Authorization", `Bearer ${token}`)
-    }
-    return headers
-  },
-})
+import { createApi } from '@reduxjs/toolkit/query/react';
+import baseQueryWithRetry from '../baseQuery';
+import { CACHE_TIMES } from '../../constants';
 
 export const contactsApi = createApi({
-  reducerPath: "contactsApi",
-  baseQuery,
+  reducerPath: 'contactsApi',
+  baseQuery: baseQueryWithRetry,
+  tagTypes: ['Contacts'],
+  keepUnusedDataFor: CACHE_TIMES.CONTACTS,
+  refetchOnMountOrArgChange: CACHE_TIMES.CONTACTS,
   endpoints: (builder) => ({
     updateContactName: builder.mutation({
       query: ({ uuid, name }) => ({
         url: `contacts/${uuid}`,
-        method: "PATCH",
-        body: {
-          name,
-        },
+        method: 'PATCH',
+        body: { name },
       }),
+      invalidatesTags: (_, __, { uuid }) => [
+        { type: 'Contacts', id: uuid },
+        { type: 'Conversations', id: uuid },
+      ],
     }),
   }),
-})
+});
 
-export const { useUpdateContactNameMutation } = contactsApi
+export const { useUpdateContactNameMutation } = contactsApi;

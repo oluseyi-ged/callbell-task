@@ -1,33 +1,43 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react"
-
-const baseQuery = fetchBaseQuery({
-  baseUrl: process.env.CALLBELL_API_URL,
-  prepareHeaders: (headers) => {
-    const token = process.env.CALLBELL_API_KEY
-    if (token) {
-      headers.set("Authorization", `Bearer ${token}`)
-    }
-    return headers
-  },
-})
+import { createApi } from '@reduxjs/toolkit/query/react';
+import baseQueryWithRetry from '../baseQuery';
+import { CACHE_TIMES } from '../../constants';
 
 export const conversationsApi = createApi({
-  reducerPath: "conversationsApi",
-  baseQuery,
+  reducerPath: 'conversationsApi',
+  baseQuery: baseQueryWithRetry,
+  tagTypes: ['Conversations'],
+  keepUnusedDataFor: CACHE_TIMES.CONVERSATIONS,
+  refetchOnMountOrArgChange: CACHE_TIMES.CONVERSATIONS,
   endpoints: (builder) => ({
     getConversations: builder.query({
       query: () => ({
-        url: "contacts",
+        url: 'contacts',
       }),
+      providesTags: (result) =>
+        result?.contacts
+          ? [
+              ...result.contacts.map(({ uuid }) => ({ type: 'Conversations', id: uuid })),
+              { type: 'Conversations', id: 'LIST' },
+            ]
+          : [{ type: 'Conversations', id: 'LIST' }],
+      transformResponse: (response) => {
+        if (!response?.contacts) {
+          return { contacts: [] };
+        }
+        return response;
+      },
     }),
     deleteConversation: builder.mutation({
       query: (uuid) => ({
         url: `contacts/${uuid}`,
-        method: "DELETE",
+        method: 'DELETE',
       }),
+      invalidatesTags: (_, __, uuid) => [
+        { type: 'Conversations', id: uuid },
+        { type: 'Conversations', id: 'LIST' },
+      ],
     }),
   }),
-})
+});
 
-export const { useGetConversationsQuery, useDeleteConversationMutation } =
-  conversationsApi
+export const { useGetConversationsQuery, useDeleteConversationMutation } = conversationsApi;

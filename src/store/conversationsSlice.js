@@ -1,67 +1,116 @@
-import { createSlice } from "@reduxjs/toolkit"
+import { createSlice, createEntityAdapter, createSelector } from '@reduxjs/toolkit';
 
-const initialState = {
-  conversations: [],
-}
+const conversationsAdapter = createEntityAdapter({
+  selectId: (conversation) => conversation.uuid,
+  sortComparer: (a, b) => {
+    const timeA = a.lastMessage?.time || a.createdAt || '';
+    const timeB = b.lastMessage?.time || b.createdAt || '';
+    return timeB.localeCompare(timeA);
+  },
+});
+
+const initialState = conversationsAdapter.getInitialState({
+  status: 'idle',
+  error: null,
+});
 
 const conversationsSlice = createSlice({
-  name: "conversations",
+  name: 'conversations',
   initialState,
   reducers: {
-    setConversations(state, action) {
-      const incoming = action.payload
+    setConversations: conversationsAdapter.upsertMany,
 
-      incoming.forEach((incomingConv) => {
-        const index = state.conversations.findIndex(
-          (c) => c.uuid === incomingConv.uuid
-        )
+    addConversation: conversationsAdapter.addOne,
 
-        if (index !== -1) {
-          state.conversations[index] = {
-            ...state.conversations[index],
-            ...incomingConv,
-          }
-        } else {
-          state.conversations.push(incomingConv)
-        }
-      })
-    },
     deleteConversations(state, action) {
-      state.conversations = state.conversations.filter(
-        (c) => c.uuid !== action.payload
-      )
+      conversationsAdapter.removeOne(state, action.payload);
     },
+
     clearConversations(state) {
-      state.conversations = []
+      conversationsAdapter.removeAll(state);
+      state.status = 'idle';
+      state.error = null;
     },
+
     updateLastMessage(state, action) {
-      const { uuid, message } = action.payload
-      const index = state.conversations.findIndex((c) => c.uuid === uuid)
-      if (index !== -1) {
-        state.conversations[index].lastMessage = {
-          text: message.text,
-          time: message.createdAt,
-          from: message.from,
-          status: message.status,
-        }
+      const { uuid, message } = action.payload;
+      const conversation = state.entities[uuid];
+
+      if (conversation) {
+        conversationsAdapter.updateOne(state, {
+          id: uuid,
+          changes: {
+            lastMessage: {
+              text: message.text,
+              time: message.createdAt,
+              from: message.from,
+              status: message.status,
+            },
+          },
+        });
       }
     },
+
     updateConversationName(state, action) {
-      const { uuid, newName } = action.payload
-      const index = state.conversations.findIndex((c) => c.uuid === uuid)
-      if (index !== -1) {
-        state.conversations[index].name = newName
+      const { uuid, newName } = action.payload;
+
+      if (state.entities[uuid]) {
+        conversationsAdapter.updateOne(state, {
+          id: uuid,
+          changes: { name: newName },
+        });
       }
+    },
+
+    setStatus(state, action) {
+      state.status = action.payload;
+    },
+
+    setError(state, action) {
+      state.error = action.payload;
+      state.status = 'failed';
     },
   },
-})
+});
 
 export const {
   setConversations,
+  addConversation,
   deleteConversations,
   clearConversations,
   updateLastMessage,
   updateConversationName,
-} = conversationsSlice.actions
+  setStatus,
+  setError,
+} = conversationsSlice.actions;
 
-export default conversationsSlice.reducer
+export const conversationsSelectors = conversationsAdapter.getSelectors(
+  (state) => state.conversations
+);
+
+export const selectConversationById = (uuid) =>
+  createSelector(
+    [conversationsSelectors.selectById],
+    (selectById) => selectById(uuid)
+  );
+
+export const selectConversationName = (uuid) =>
+  createSelector(
+    [(state) => conversationsSelectors.selectById(state, uuid)],
+    (conversation) => conversation?.name || 'Unknown'
+  );
+
+export const selectAllConversationsSorted = createSelector(
+  [conversationsSelectors.selectAll],
+  (conversations) => conversations
+);
+
+export const selectConversationsCount = createSelector(
+  [conversationsSelectors.selectTotal],
+  (total) => total
+);
+
+export const selectConversationsStatus = (state) => state.conversations.status;
+export const selectConversationsError = (state) => state.conversations.error;
+
+export default conversationsSlice.reducer;
